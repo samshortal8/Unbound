@@ -124,13 +124,16 @@ def cell_text(c):
 
 ITEM_COLS = re.compile(r"\b(item|items|held|reward|rewards|prize|gift)\b", re.I)
 TM_RE = re.compile(r"(?<![A-Za-z0-9#])(TM|HM)\s?0*(\d{1,3})(?!\d)")
+MON_REF_RE = re.compile(r"(?<![\w-])((?:(?:Alolan|Galarian|Mega) )?[A-Z][\w.'\u00e9\-]+(?: [A-Z][\w.'\u00e9\-]+)?) \(#(\d{3})\)")
 
 
 class ItemDecorator:
     """Adds small item / TM icons to guide HTML (see ItemIcons in sprites.py)."""
 
-    def __init__(self, items):
+    def __init__(self, items, sprites=None, dex_names=None):
         self.items = items
+        self.sp = sprites
+        self.dex_names = dex_names or {}
         self.memo = {}
         self.count = 0
 
@@ -174,7 +177,27 @@ class ItemDecorator:
             out.append(q + dec if dec else piece)
         return "".join(out)
 
+    def _mon(self, m):
+        """'Basculin (#550)' -> mini sprite before the name, when the name matches that dex entry."""
+        name, num = m.group(1), int(m.group(2))
+        known = self.dex_names.get(num, "").lower()
+        words = name.split(" ")
+        # allow a leading verb ('Catch Basculin'): match the name against the tail words
+        for i in range(len(words)):
+            tail = " ".join(words[i:])
+            base = re.sub(r"^(Alolan|Galarian|Mega) ", "", tail)
+            if known and known in (base.lower(), tail.lower()):
+                p, _ = self.sp.path({"name": tail, "label": tail, "dex": num})
+                if p:
+                    head = " ".join(words[:i]) + (" " if i else "")
+                    return f'{head}{self._img(p, "mon-ico")}{tail} (#{m.group(2)})'
+                break
+        return m.group(0)
+
     def __call__(self, h, lead=False, bag=False):
+        if self.sp and self.dex_names and h and "(#" in h:
+            h = "".join(MON_REF_RE.sub(self._mon, part) if not part.startswith("<") else part
+                        for part in re.split(r"(<[^>]+>)", h))
         if not self.items or not h:
             return h
         parts = re.split(r"(<[^>]+>)", h)
@@ -205,9 +228,9 @@ def dex_str(d):
 
 
 class Renderer:
-    def __init__(self, sprites: SpriteBook, dex_icons=False, items=None):
+    def __init__(self, sprites: SpriteBook, dex_icons=False, items=None, dex_names=None):
         self.sp = sprites
-        self.deco = ItemDecorator(items)
+        self.deco = ItemDecorator(items, sprites, dex_names)
         self.stop_n = 0
         self.dex_icons = dex_icons
         self.toc = []          # [(chapter_idx, chapter, [(id, title, cap, tags)])]
@@ -530,10 +553,32 @@ def thumb_tab_svg(idx, n, label, out_dir: Path, num=None):
     return p
 
 
+def dex_names_from(model):
+    """National dex number -> species name, from every Pokémon table that has a number column."""
+    out = {}
+
+    def walk(blocks):
+        for b in blocks:
+            if b.get("type") == "table":
+                pc = pokemon_cols(b["headers"])
+                if pc and pc[1] is not None:
+                    for r in b["rows"]:
+                        c = r["cells"]
+                        dx = re.sub(r"\D", "", cell_text(c[pc[1]])) if pc[1] < len(c) else ""
+                        if dx and pc[0] < len(c):
+                            out.setdefault(int(dx), cell_text(c[pc[0]]))
+            for key in ("blocks", "extra"):
+                if isinstance(b.get(key), list):
+                    walk(b[key])
+    for ch in model.get("chapters", []):
+        walk(ch.get("blocks", []))
+    return out
+
+
 def build_html(model, sprites: SpriteBook, css_path: Path, asset_dir: Path, dex_icons=False, sprite_note="",
                items=None):
     asset_dir.mkdir(parents=True, exist_ok=True)
-    r = Renderer(sprites, dex_icons=dex_icons, items=items)
+    r = Renderer(sprites, dex_icons=dex_icons, items=items, dex_names=dex_names_from(model))
     chapters = model["chapters"]
     n = len(chapters)
     body_ch = [r.chapter(i + 1, ch, sum(1 for c in chapters if (c.get("progress") or [0])[0])) for i, ch in enumerate(chapters)]

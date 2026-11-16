@@ -635,6 +635,13 @@ td.enc-body { vertical-align: top; }
   margin-top: 1pt;
   image-rendering: pixelated;
 }
+img.mon-ico {
+  width: 2em;
+  height: 2em;
+  vertical-align: -0.42em;
+  margin: -0.6em 1pt -0.4em -1pt;
+  image-rendering: pixelated;
+}
 .sprite-fallback { border: 1pt solid #16192B; }
 .fb-dex {
   display: inline-block;
