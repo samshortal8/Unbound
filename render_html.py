@@ -122,9 +122,20 @@ def cell_text(c):
     return html.unescape(re.sub(r"<[^>]+>", "", c or "")).strip()
 
 
+def mon_name_from_cell(c):
+    """The Pokémon a table cell names: 'Zeraora <strong>NG+ early</strong>' -> Zeraora,
+    '<strong>Diancie</strong><br>unverified' -> Diancie, 'Kubfu / Urshifu' -> Kubfu."""
+    h = re.split(r"<br\s*/?>", c or "")[0]
+    if not h.lstrip().startswith("<"):
+        h = h.split("<", 1)[0]
+    t = re.split(r"\s*/\s*|\s+or\s+", cell_text(h))[0]
+    return " ".join(t.split())
+
+
 ITEM_COLS = re.compile(r"\b(item|items|held|reward|rewards|prize|gift)\b", re.I)
 TM_RE = re.compile(r"(?<![A-Za-z0-9#])(TM|HM)\s?0*(\d{1,3})(?!\d)")
-MON_REF_RE = re.compile(r"(?<![\w-])((?:(?:Alolan|Galarian|Mega) )?[A-Z][\w.'\u00e9\-]+(?: [A-Z][\w.'\u00e9\-]+)?) \(#(\d{3})\)")
+MON_REF_RE = re.compile(r"(?<![\w-])((?:(?:Alolan|Galarian|Mega) )?[A-Z][\w.'\u00e9\-]+(?: [A-Z][\w.'\u00e9\-]+)?)"
+                        r"((?:</strong>|</em>)?) \(#(\d{3})\)")
 
 
 class ItemDecorator:
@@ -179,7 +190,7 @@ class ItemDecorator:
 
     def _mon(self, m):
         """'Basculin (#550)' -> mini sprite before the name, when the name matches that dex entry."""
-        name, num = m.group(1), int(m.group(2))
+        name, close, num = m.group(1), m.group(2), int(m.group(3))
         known = self.dex_names.get(num, "").lower()
         words = name.split(" ")
         # allow a leading verb ('Catch Basculin'): match the name against the tail words
@@ -190,14 +201,13 @@ class ItemDecorator:
                 p, _ = self.sp.path({"name": tail, "label": tail, "dex": num})
                 if p:
                     head = " ".join(words[:i]) + (" " if i else "")
-                    return f'{head}{self._img(p, "mon-ico")}{tail} (#{m.group(2)})'
+                    return f'{head}{self._img(p, "mon-ico")}{tail}{close} (#{m.group(3)})'
                 break
         return m.group(0)
 
     def __call__(self, h, lead=False, bag=False):
         if self.sp and self.dex_names and h and "(#" in h:
-            h = "".join(MON_REF_RE.sub(self._mon, part) if not part.startswith("<") else part
-                        for part in re.split(r"(<[^>]+>)", h))
+            h = MON_REF_RE.sub(self._mon, h)
         if not self.items or not h:
             return h
         parts = re.split(r"(<[^>]+>)", h)
@@ -309,7 +319,7 @@ class Renderer:
             if pc:
                 ni, xi = pc
                 cells = r["cells"]
-                nm = cell_text(cells[ni]) if ni < len(cells) else ""
+                nm = mon_name_from_cell(cells[ni]) if ni < len(cells) else ""
                 dx = re.sub(r"\D", "", cell_text(cells[xi]))[:4] if xi is not None and xi < len(cells) else ""
                 mon = {"name": nm, "label": nm, "dex": int(dx) if dx else None, "types": []}
                 p, _ = self.sp.path(mon) if nm else (None, None)

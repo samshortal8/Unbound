@@ -130,7 +130,9 @@ def parse_species(name: str, label: str = "", dex: Optional[int] = None) -> Spri
         if p in PAREN_FORMS:
             form = PAREN_FORMS[p]
     raw = re.sub(r"\([^)]*\)?", "", raw).strip()
-    raw = re.split(r"\s+or\s+", raw, flags=re.I)[0].strip()          # 'Clefairy or Clefable' -> Clefairy
+    raw = re.split(r"\s+or\s+", raw, flags=re.I)[0].strip()
+    if re.match(r"eternal(?: flower)? floette$", raw, re.I):
+        return SpriteKey(dex, "Floette", "eternal")          # 'Clefairy or Clefable' -> Clefairy
     low = raw.lower()
     if low in KEEP_HYPHEN:
         return SpriteKey(dex, raw, form)
@@ -625,7 +627,11 @@ class ItemIcons:
 
     def tm_icon(self, kind: str, num: int) -> Optional[Path]:
         t = self.tm_type(kind, num)
-        return self.icon(f"{'hm' if kind.upper() == 'HM' else 'tm'}-{t.lower()}") if t else None
+        if not t:
+            return None
+        if kind.upper() == "HM":
+            return self.icon(f"hm-{t.lower()}") or self.icon(f"tm-{t.lower()}")
+        return self.icon(f"tm-{t.lower()}")
 
     @staticmethod
     def _store(out: Path, data: bytes, keep_canvas: bool) -> bool:

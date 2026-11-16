@@ -31,7 +31,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 import parse_pdf  # noqa: E402
-from render_html import SpriteBook, build_html, cell_text, pokemon_cols  # noqa: E402
+from render_html import SpriteBook, build_html, cell_text, mon_name_from_cell, pokemon_cols  # noqa: E402
 from sprites import ItemIcons, SpriteResolver, parse_species  # noqa: E402
 
 
@@ -61,7 +61,7 @@ def dex_rows(blocks):
                 ni, xi = pc
                 for r in b["rows"]:
                     c = r["cells"]
-                    nm = cell_text(c[ni]) if ni < len(c) else ""
+                    nm = mon_name_from_cell(c[ni]) if ni < len(c) else ""
                     dx = re.sub(r"\D", "", cell_text(c[xi]))[:4] if xi is not None and xi < len(c) else ""
                     if nm:
                         yield {"name": nm, "label": nm, "dex": int(dx) if dx else None}

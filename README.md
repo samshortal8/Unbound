@@ -6,8 +6,27 @@ gold #E8B027, crimson #B8292F, emerald #1F7A54).
 
 ```
 pip install -r requirements.txt
-python build.py "Unbound_NG+_Expert_Story_Walkthrough.pdf" -o Unbound_Prima_Edition.pdf
+python build.py --model data/model.json -o Unbound_Prima_Edition.pdf
 ```
+
+`data/model.json` is the whole guide as structured content, so you don't need the original
+source PDF. It was recovered from a finished Prima build with `parse_prima.py`, and a
+re-render matches that build word for word. If you do have the original walkthrough PDF,
+`python build.py "Unbound_NG+_Expert_Story_Walkthrough.pdf" -o Unbound_Prima_Edition.pdf`
+still works.
+
+What the build adds on top of the layout:
+
+* **Pokémon sprites** on every encounter card and roster card (unboundwiki.com).
+* **A sprite column** in the Pokédex (all 809 entries) and in every other table that lists
+  Pokémon (Legendaries, team tables ...).
+* **Item icons** before bold item names, held items on roster cards, trainers' bag items,
+  and Item / Reward table columns (PokeAPI item sprites; names in `data/items.tsv`).
+* **TM / HM discs** in the move's type colour before every TM or HM code
+  (`data/unbound_tms.json`, from the Unbound wiki's TM table).
+* **Mini sprites** in lines like "Catch Basculin (#550)".
+
+`--no-items` and `--no-dex-icons` turn the icon features off.
 
 First run fetches ~590 sprites (polite 0.6 s gap per host, roughly 10-20 minutes). Every run
 after that is offline and takes about a minute.
@@ -25,6 +44,7 @@ WeasyPrint needs Pango on the system: macOS `brew install pango`, Debian/Ubuntu
 | 3 | `render_html.py` | Emits Prima-style HTML: cover, contents with live page numbers, chapter splash pages (eyebrow, title, HP progress bar, stat tiles, "In this chapter", "Key battles"), stop bars, 2-column encounter grids, boss/team roster cards, callouts, tables, side thumb tabs. |
 | 4 | `prima_unbound.css` | The stylesheet (your attachment, extended). Fonts are bundled in `fonts/` (SIL OFL). |
 | 5 | `build.py` | CLI that runs the lot and writes the PDF with WeasyPrint. |
+| 6 | `parse_prima.py` | Rebuilds `data/model.json` from a finished Prima PDF (fallback-badge build). `verify_prima_parse.py` re-renders the model and diffs it against a reference PDF. |
 
 ## Sprites
 
@@ -53,7 +73,9 @@ Useful flags:
 --offline                 no network; cache/overrides/badges only
 --list-sprites            print every slug the guide needs (names for overrides/)
 --chapters 3              quick preview of one chapter
---dex-icons               also add a small sprite to all 809 Pokédex table rows
+--no-dex-icons            no sprite column in Pokémon tables (on by default)
+--no-items                no item / TM icons (on by default)
+--model data/model.json   build from the model instead of a source PDF
 --reparse                 ignore the cached parse
 ```
 
