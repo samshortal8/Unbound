@@ -81,24 +81,29 @@ def find_badges(page):
 
 
 def patch_cover(page, note):
-    hits = page.search_for(OLD_NOTE)
-    if not hits:
-        return False
-    # Read the footer style from the original text, then redact and rewrite the sentence.
-    span = next((s for s in spans(page) if "fallback badges" in s["text"]), None)
-    size = span["size"] if span else 7.2
-    color = pymupdf.sRGB_to_pdf(span["color"]) if span else (0.65, 0.68, 0.79)
-    area = hits[0]
-    for h in hits[1:]:
-        area |= h
-    for h in hits:
-        page.add_redact_annot(h, fill=False)
-    page.apply_redactions(images=pymupdf.PDF_REDACT_IMAGE_NONE, graphics=pymupdf.PDF_REDACT_LINE_ART_NONE)
-    font = HERE / "fonts" / "AtkinsonHyperlegible-Regular.ttf"
-    page.insert_font(fontname="atk", fontfile=str(font))
-    box = pymupdf.Rect(hits[0].x0, hits[0].y0, page.rect.width - 51, hits[0].y0 + 4 * size * 1.45)
-    page.insert_textbox(box, note, fontname="atk", fontsize=size, color=color, lineheight=1.35)
-    return True
+    """Swap the cover footer's 'fallback badges' sentence for the sprite credit.
+
+    The sentence starts part-way along a line, so the whole footer paragraph is removed
+    and re-set in the same font, size, colour and line spacing."""
+    for b in page.get_text("dict")["blocks"]:
+        lines = b.get("lines", [])
+        text = " ".join("".join(s["text"] for s in l["spans"]) for l in lines)
+        text = " ".join(text.split())
+        if OLD_NOTE not in text:
+            continue
+        span = lines[0]["spans"][0]
+        size, color = span["size"], pymupdf.sRGB_to_pdf(span["color"])
+        step = (lines[1]["bbox"][1] - lines[0]["bbox"][1]) if len(lines) > 1 else size * 1.42
+        area = pymupdf.Rect(b["bbox"])
+        page.add_redact_annot(area, fill=False)
+        page.apply_redactions(images=pymupdf.PDF_REDACT_IMAGE_NONE, graphics=pymupdf.PDF_REDACT_LINE_ART_NONE)
+        font = HERE / "fonts" / "AtkinsonHyperlegible-Regular.ttf"
+        page.insert_font(fontname="atk", fontfile=str(font))
+        box = pymupdf.Rect(area.x0, area.y0, page.rect.width - area.x0, area.y0 + step * 5)
+        rc = page.insert_textbox(box, text.replace(OLD_NOTE, note), fontname="atk", fontsize=size,
+                                 color=color, lineheight=step / size)
+        return rc >= 0
+    return False
 
 
 def main(argv=None):

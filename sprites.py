@@ -47,6 +47,8 @@ WIKI_BASE = "https://unboundwiki.com"  # the TLS certificate does not cover www.
 # garchomp-mega, charizard-mega-x, hoopa-unbound, rotom-mow, landorus-therian.
 WIKI_SPRITES = "https://static.unboundwiki.com/wp-content/assets/sprites/pokemon/"
 WIKI_FORM_SUFFIX = {"alola": "a", "galar": "g", "hisui": "h"}
+# species whose default sprite has a form name on the wiki (no plain <species>.png)
+WIKI_DEFAULT_FORM = {"basculin": "basculin-red", "minior": "minior-shield"}
 DPE_RAW = "https://raw.githubusercontent.com/Skeli789/Dynamic-Pokemon-Expansion/Unbound/graphics/frontspr/"
 DPE_API = "https://api.github.com/repos/Skeli789/Dynamic-Pokemon-Expansion/git/trees/Unbound?recursive=1"
 USER_AGENT = "UnboundPrimaGuideBuilder/1.0 (personal fan guide; sprite cache, polite rate limit)"
@@ -380,6 +382,8 @@ class SpriteResolver:
         name = slugify(key.species)
         if key.form:
             name += "-" + WIKI_FORM_SUFFIX.get(key.form, key.form)
+        else:
+            name = WIKI_DEFAULT_FORM.get(name, name)
         url = WIKI_SPRITES + name + ".png"
         data = self._get(url, binary=True)
         if data:
