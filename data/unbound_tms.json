@@ -1,0 +1,514 @@
+{
+"HM01": {
+"move": "Cut",
+"type": "Normal"
+},
+"HM02": {
+"move": "Fly",
+"type": "Flying"
+},
+"HM03": {
+"move": "Surf",
+"type": "Water"
+},
+"HM04": {
+"move": "Strength",
+"type": "Normal"
+},
+"HM05": {
+"move": "Dive",
+"type": "Water"
+},
+"HM06": {
+"move": "Rock Smash",
+"type": "Fighting"
+},
+"HM07": {
+"move": "Waterfall",
+"type": "Water"
+},
+"HM08": {
+"move": "Rock Climb",
+"type": "Rock"
+},
+"TM01": {
+"move": "Focus Punch",
+"type": "Fighting"
+},
+"TM02": {
+"move": "Dragon Claw",
+"type": "Dragon"
+},
+"TM03": {
+"move": "Water Pulse",
+"type": "Water"
+},
+"TM04": {
+"move": "Calm Mind",
+"type": "Psychic"
+},
+"TM05": {
+"move": "Roar",
+"type": "Normal"
+},
+"TM06": {
+"move": "Toxic",
+"type": "Poison"
+},
+"TM07": {
+"move": "Hail",
+"type": "Ice"
+},
+"TM08": {
+"move": "Bulk Up",
+"type": "Fighting"
+},
+"TM09": {
+"move": "Bullet Seed",
+"type": "Grass"
+},
+"TM10": {
+"move": "Hidden Power",
+"type": "Normal"
+},
+"TM100": {
+"move": "Infestation",
+"type": "Bug"
+},
+"TM101": {
+"move": "Power-Up Hit",
+"type": "Fighting"
+},
+"TM102": {
+"move": "Dazzle Gleam",
+"type": "Fairy"
+},
+"TM103": {
+"move": "Sludge Wave",
+"type": "Poison"
+},
+"TM104": {
+"move": "Psyshock",
+"type": "Psychic"
+},
+"TM105": {
+"move": "Brutal Swing",
+"type": "Dark"
+},
+"TM106": {
+"move": "Smart Strike",
+"type": "Steel"
+},
+"TM107": {
+"move": "Acrobatics",
+"type": "Flying"
+},
+"TM108": {
+"move": "Snarl",
+"type": "Dark"
+},
+"TM109": {
+"move": "Defog",
+"type": "Flying"
+},
+"TM11": {
+"move": "Sunny Day",
+"type": "Fire"
+},
+"TM110": {
+"move": "Drain Kiss",
+"type": "Fairy"
+},
+"TM111": {
+"move": "Smack Down",
+"type": "Rock"
+},
+"TM112": {
+"move": "Round",
+"type": "Normal"
+},
+"TM113": {
+"move": "Echoed Voice",
+"type": "Normal"
+},
+"TM114": {
+"move": "Natural Gift",
+"type": "Normal"
+},
+"TM115": {
+"move": "Quash",
+"type": "Dark"
+},
+"TM116": {
+"move": "Trick Room",
+"type": "Psychic"
+},
+"TM117": {
+"move": "Fling",
+"type": "Dark"
+},
+"TM118": {
+"move": "Aurora Veil",
+"type": "Ice"
+},
+"TM119": {
+"move": "Sky Drop",
+"type": "Flying"
+},
+"TM12": {
+"move": "Taunt",
+"type": "Dark"
+},
+"TM120": {
+"move": "Nature Power",
+"type": "Normal"
+},
+"TM13": {
+"move": "Ice Beam",
+"type": "Ice"
+},
+"TM14": {
+"move": "Blizzard",
+"type": "Ice"
+},
+"TM15": {
+"move": "Hyper Beam",
+"type": "Normal"
+},
+"TM16": {
+"move": "Light Screen",
+"type": "Psychic"
+},
+"TM17": {
+"move": "Protect",
+"type": "Normal"
+},
+"TM18": {
+"move": "Rain Dance",
+"type": "Water"
+},
+"TM19": {
+"move": "Giga Drain",
+"type": "Grass"
+},
+"TM20": {
+"move": "Safeguard",
+"type": "Normal"
+},
+"TM21": {
+"move": "Frustration",
+"type": "Normal"
+},
+"TM22": {
+"move": "Solar Beam",
+"type": "Grass"
+},
+"TM23": {
+"move": "Iron Tail",
+"type": "Steel"
+},
+"TM24": {
+"move": "Thunderbolt",
+"type": "Electric"
+},
+"TM25": {
+"move": "Thunder",
+"type": "Electric"
+},
+"TM26": {
+"move": "Earthquake",
+"type": "Ground"
+},
+"TM27": {
+"move": "Return",
+"type": "Normal"
+},
+"TM28": {
+"move": "Dig",
+"type": "Ground"
+},
+"TM29": {
+"move": "Psychic",
+"type": "Psychic"
+},
+"TM30": {
+"move": "Shadow Ball",
+"type": "Ghost"
+},
+"TM31": {
+"move": "Brick Break",
+"type": "Fighting"
+},
+"TM32": {
+"move": "Double Team",
+"type": "Normal"
+},
+"TM33": {
+"move": "Reflect",
+"type": "Psychic"
+},
+"TM34": {
+"move": "Shockwave",
+"type": "Electric"
+},
+"TM35": {
+"move": "Flamethrower",
+"type": "Fire"
+},
+"TM36": {
+"move": "Sludge Bomb",
+"type": "Poison"
+},
+"TM37": {
+"move": "Sandstorm",
+"type": "Rock"
+},
+"TM38": {
+"move": "Fire Blast",
+"type": "Fire"
+},
+"TM39": {
+"move": "Rock Tomb",
+"type": "Rock"
+},
+"TM40": {
+"move": "Aerial Ace",
+"type": "Flying"
+},
+"TM41": {
+"move": "Torment",
+"type": "Dark"
+},
+"TM42": {
+"move": "Facade",
+"type": "Normal"
+},
+"TM43": {
+"move": "Secret Power",
+"type": "Normal"
+},
+"TM44": {
+"move": "Rest",
+"type": "Psychic"
+},
+"TM45": {
+"move": "Attract",
+"type": "Normal"
+},
+"TM46": {
+"move": "Thief",
+"type": "Dark"
+},
+"TM47": {
+"move": "Steel Wing",
+"type": "Steel"
+},
+"TM48": {
+"move": "Skill Swap",
+"type": "Psychic"
+},
+"TM49": {
+"move": "Leech Fang",
+"type": "Bug"
+},
+"TM50": {
+"move": "Overheat",
+"type": "Fire"
+},
+"TM51": {
+"move": "Roost",
+"type": "Flying"
+},
+"TM52": {
+"move": "Focus Blast",
+"type": "Fighting"
+},
+"TM53": {
+"move": "Energy Ball",
+"type": "Grass"
+},
+"TM54": {
+"move": "False Swipe",
+"type": "Normal"
+},
+"TM55": {
+"move": "Brine",
+"type": "Water"
+},
+"TM56": {
+"move": "Hone Claws",
+"type": "Dark"
+},
+"TM57": {
+"move": "Charge Beam",
+"type": "Electric"
+},
+"TM58": {
+"move": "Endure",
+"type": "Normal"
+},
+"TM59": {
+"move": "Dragon Pulse",
+"type": "Dragon"
+},
+"TM60": {
+"move": "Drain Punch",
+"type": "Fighting"
+},
+"TM61": {
+"move": "Will-O-Wisp",
+"type": "Fire"
+},
+"TM62": {
+"move": "Silver Wind",
+"type": "Bug"
+},
+"TM63": {
+"move": "Venoshock",
+"type": "Poison"
+},
+"TM64": {
+"move": "Explosion",
+"type": "Normal"
+},
+"TM65": {
+"move": "Shadow Claw",
+"type": "Ghost"
+},
+"TM66": {
+"move": "Payback",
+"type": "Dark"
+},
+"TM67": {
+"move": "Recycle",
+"type": "Normal"
+},
+"TM68": {
+"move": "Giga Impact",
+"type": "Normal"
+},
+"TM69": {
+"move": "Rock Polish",
+"type": "Rock"
+},
+"TM70": {
+"move": "Flash",
+"type": "Normal"
+},
+"TM71": {
+"move": "Stone Edge",
+"type": "Rock"
+},
+"TM72": {
+"move": "Avalanche",
+"type": "Ice"
+},
+"TM73": {
+"move": "Thunder Wave",
+"type": "Electric"
+},
+"TM74": {
+"move": "Gyro Ball",
+"type": "Steel"
+},
+"TM75": {
+"move": "Swords Dance",
+"type": "Normal"
+},
+"TM76": {
+"move": "Stealth Rock",
+"type": "Rock"
+},
+"TM77": {
+"move": "Flame Charge",
+"type": "Fire"
+},
+"TM78": {
+"move": "Low Sweep",
+"type": "Fighting"
+},
+"TM79": {
+"move": "Dark Pulse",
+"type": "Dark"
+},
+"TM80": {
+"move": "Rock Slide",
+"type": "Rock"
+},
+"TM81": {
+"move": "X-Scissor",
+"type": "Bug"
+},
+"TM82": {
+"move": "Sleep Talk",
+"type": "Normal"
+},
+"TM83": {
+"move": "Scald",
+"type": "Water"
+},
+"TM84": {
+"move": "Poison Jab",
+"type": "Poison"
+},
+"TM85": {
+"move": "Dream Eater",
+"type": "Psychic"
+},
+"TM86": {
+"move": "Grass Knot",
+"type": "Grass"
+},
+"TM87": {
+"move": "Swagger",
+"type": "Normal"
+},
+"TM88": {
+"move": "Pluck",
+"type": "Flying"
+},
+"TM89": {
+"move": "U-Turn",
+"type": "Bug"
+},
+"TM90": {
+"move": "Substitute",
+"type": "Normal"
+},
+"TM91": {
+"move": "Flash Cannon",
+"type": "Steel"
+},
+"TM92": {
+"move": "Volt Switch",
+"type": "Electric"
+},
+"TM93": {
+"move": "Dragon Tail",
+"type": "Dragon"
+},
+"TM94": {
+"move": "Incinerate",
+"type": "Fire"
+},
+"TM95": {
+"move": "Struggle Bug",
+"type": "Bug"
+},
+"TM96": {
+"move": "Bulldoze",
+"type": "Ground"
+},
+"TM97": {
+"move": "Frost Breath",
+"type": "Ice"
+},
+"TM98": {
+"move": "Work Up",
+"type": "Normal"
+},
+"TM99": {
+"move": "Wild Charge",
+"type": "Electric"
+}
+}

@@ -894,8 +894,20 @@ table.data-table .col-check { width: 15pt; text-align: center; padding-left: 2pt
 }
 table.dex-table { font-size: 7.5pt; }
 table.dex-table td { padding: 2pt 5pt; }
-table.data-table .col-icon { width: 24pt; padding: 1pt 2pt; }
-.dex-icon { width: 20pt; height: 20pt; border-radius: 2pt; overflow: hidden; text-align: center; }
-.dex-icon img { width: 20pt; height: 20pt; image-rendering: pixelated; }
-.dex-icon.sprite-fallback .fb-dex { margin-top: 5pt; font-size: 3.6pt; padding: 1pt; }
+table.data-table .col-icon { width: 33pt; padding: 1pt 2pt; vertical-align: middle; }
+table.has-icons td { vertical-align: middle; }
+.dex-icon { width: 29pt; height: 29pt; border-radius: 3pt; overflow: hidden; text-align: center;
+            background: #EEF1F8; border: 0.75pt solid #C8CEE0; }
+.dex-icon img { width: 27.5pt; height: 27.5pt; image-rendering: pixelated; }
+.dex-icon.sprite-fallback { border: 0.75pt solid #16192B; }
+.dex-icon.sprite-fallback .fb-dex { margin-top: 10pt; font-size: 4pt; padding: 1pt 1.5pt; }
 .dex-icon .fb-name, .dex-icon .fb-form { display: none; }
+
+/* ---------- Item and TM icons (inline, sized to the surrounding text) ---------- */
+img.item-ico {
+  width: 1.4em;
+  height: 1.4em;
+  vertical-align: -0.32em;
+  margin: -0.2em 0.5pt -0.2em -1pt;
+  image-rendering: pixelated;
+}

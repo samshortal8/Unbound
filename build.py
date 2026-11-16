@@ -22,6 +22,7 @@ import argparse
 import hashlib
 import json
 import logging
+import re
 import sys
 import time
 from pathlib import Path
@@ -30,8 +31,8 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 import parse_pdf  # noqa: E402
-from render_html import SpriteBook, build_html  # noqa: E402
-from sprites import SpriteResolver, parse_species  # noqa: E402
+from render_html import SpriteBook, build_html, cell_text, pokemon_cols  # noqa: E402
+from sprites import ItemIcons, SpriteResolver, parse_species  # noqa: E402
 
 
 def sha1_file(p: Path) -> str:
@@ -52,22 +53,27 @@ def iter_mons(blocks):
 
 
 def dex_rows(blocks):
+    """Pokémon named in any table with a Pokémon column (these get sprite icons)."""
     for b in blocks:
         if b.get("type") == "table":
-            hdr = [h.lower() for h in b["headers"]]
-            if any(h.startswith("pok") for h in hdr) and "method" in hdr:
-                import re
-                ni = next(i for i, h in enumerate(hdr) if h.startswith("pok"))
-                xi = next((i for i, h in enumerate(hdr) if h.startswith("no")), None)
+            pc = pokemon_cols(b["headers"])
+            if pc:
+                ni, xi = pc
                 for r in b["rows"]:
-                    nm = re.sub(r"<[^>]+>", "", r["cells"][ni]).strip()
-                    dx = re.sub(r"\D", "", re.sub(r"<[^>]+>", "", r["cells"][xi])) if xi is not None else ""
-                    yield {"name": nm, "label": nm, "dex": int(dx) if dx else None}
+                    c = r["cells"]
+                    nm = cell_text(c[ni]) if ni < len(c) else ""
+                    dx = re.sub(r"\D", "", cell_text(c[xi]))[:4] if xi is not None and xi < len(c) else ""
+                    if nm:
+                        yield {"name": nm, "label": nm, "dex": int(dx) if dx else None}
+        for key in ("blocks", "extra"):
+            if isinstance(b.get(key), list):
+                yield from dex_rows(b[key])
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("pdf", type=Path, help="source walkthrough PDF")
+    ap.add_argument("pdf", type=Path, nargs="?", help="source walkthrough PDF (or use --model)")
+    ap.add_argument("--model", type=Path, help="build from a model JSON instead (e.g. data/model.json from parse_prima.py)")
     ap.add_argument("-o", "--out", type=Path, default=Path("Unbound_NG_Expert_Prima_Edition.pdf"))
     ap.add_argument("--build-dir", type=Path, default=Path("build"))
     ap.add_argument("--cache", type=Path, default=Path("sprite_cache"))
@@ -76,11 +82,16 @@ def main(argv=None):
     ap.add_argument("--offline", action="store_true")
     ap.add_argument("--delay", type=float, default=0.6, help="seconds between requests to one host")
     ap.add_argument("--chapters", default="", help="e.g. 1,3,9 (default: all)")
-    ap.add_argument("--dex-icons", action="store_true")
+    ap.add_argument("--dex-icons", action="store_true", help="(default) sprite column in Pokémon tables")
+    ap.add_argument("--no-dex-icons", action="store_true", help="no sprite column in Pokémon tables")
+    ap.add_argument("--no-items", action="store_true", help="no item / TM icons")
     ap.add_argument("--html-only", action="store_true")
     ap.add_argument("--list-sprites", action="store_true")
     ap.add_argument("--reparse", action="store_true", help="ignore the cached parse")
     a = ap.parse_args(argv)
+    if not a.pdf and not a.model:
+        ap.error("give the source PDF or --model")
+    a.dex_icons = not a.no_dex_icons
 
     logging.getLogger("weasyprint").setLevel(logging.ERROR)
     logging.getLogger("fontTools").setLevel(logging.ERROR)
@@ -88,8 +99,11 @@ def main(argv=None):
     t0 = time.time()
 
     # 1) parse ------------------------------------------------------------
-    parsed = a.build_dir / f"parsed-{sha1_file(a.pdf)}.json"
-    if parsed.exists() and not a.reparse:
+    parsed = a.model or a.build_dir / f"parsed-{sha1_file(a.pdf)}.json"
+    if a.model:
+        model = json.loads(a.model.read_text("utf-8"))
+        print(f"[1/4] model: {a.model}")
+    elif parsed.exists() and not a.reparse:
         model = json.loads(parsed.read_text("utf-8"))
         print(f"[1/4] parse: cached ({parsed.name})")
     else:
@@ -142,8 +156,14 @@ def main(argv=None):
     print(f"      resolved {got}/{len(keys)}; the rest use fallback badges")
 
     # 3) html -------------------------------------------------------------
+    items = None if a.no_items else ItemIcons(resolver, HERE / "data" / "items.tsv", HERE / "data" / "unbound_tms.json")
+    if items:
+        note += " Item and TM icons: PokeAPI sprites."
     css = HERE / "prima_unbound.css"
-    html = build_html(model, book, css, a.build_dir / "assets", dex_icons=a.dex_icons, sprite_note=note)
+    html = build_html(model, book, css, a.build_dir / "assets", dex_icons=a.dex_icons, sprite_note=note, items=items)
+    if items:
+        items.save()
+        print(f"      item/TM icons: {items.stats}")
     html_path = a.build_dir / "guide.html"
     html_path.write_text(html, "utf-8")
     print(f"[3/4] html: {html_path} ({len(html) // 1024} KB)")

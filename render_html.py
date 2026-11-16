@@ -108,13 +108,106 @@ def avail_tag(av):
     return f'<span class="avail avail-{esc(av["kind"])}">{esc(av["text"])}</span>'
 
 
+def pokemon_cols(headers):
+    """(name column, dex-number column or None) for tables that list Pokémon, else None."""
+    low = [re.sub(r"<[^>]+>", "", h).strip().lower() for h in headers]
+    ni = next((i for i, h in enumerate(low) if h.startswith(("pokémon", "pokemon"))), None)
+    if ni is None:
+        return None
+    xi = next((i for i, h in enumerate(low) if h in ("no.", "no", "#", "dex", "dex no.", "nat. no.", "number")), None)
+    return ni, xi
+
+
+def cell_text(c):
+    return html.unescape(re.sub(r"<[^>]+>", "", c or "")).strip()
+
+
+ITEM_COLS = re.compile(r"\b(item|items|held|reward|rewards|prize|gift)\b", re.I)
+TM_RE = re.compile(r"(?<![A-Za-z0-9#])(TM|HM)\s?0*(\d{1,3})(?!\d)")
+
+
+class ItemDecorator:
+    """Adds small item / TM icons to guide HTML (see ItemIcons in sprites.py)."""
+
+    def __init__(self, items):
+        self.items = items
+        self.memo = {}
+        self.count = 0
+
+    def _img(self, path, cls="item-ico"):
+        self.count += 1
+        return f'<img class="{cls}" src="{Path(path).resolve().as_uri()}" alt="">'
+
+    def _icon(self, ident):
+        if ident not in self.memo:
+            self.memo[ident] = self.items.icon(ident)
+        return self.memo[ident]
+
+    def _tm(self, m):
+        key = (m.group(1).upper(), int(m.group(2)))
+        if key not in self.memo:
+            self.memo[key] = self.items.tm_icon(*key)
+        p = self.memo[key]
+        return (self._img(p) + m.group(0)) if p else m.group(0)
+
+    def _lead(self, text, allow_ambiguous, strict):
+        hit = self.items.leading(html.unescape(text), allow_ambiguous)
+        if not hit:
+            return None
+        ident, n = hit
+        plain = html.unescape(text)
+        rest = plain[n:]
+        if strict and re.match(r"\s+[A-Z0-9]", rest):  # 'Iron Head', 'Quick Claw Lv 2' ...
+            return None
+        p = self._icon(ident)
+        if not p:
+            return None
+        lead_ws = len(plain) - len(plain.lstrip())
+        return html.escape(plain[:lead_ws]) + self._img(p) + html.escape(plain[lead_ws:], quote=False)
+
+    def _bag(self, text):
+        out = []
+        for piece in re.split(r"(\s*(?:[,;/]|\band\b)\s*)", text):
+            m = re.match(r"(\s*(?:\d+\s*[x\u00d7]?\s*|[x\u00d7]\s*\d+\s*)?)(.*)", piece, re.S)
+            q, rest = m.group(1), m.group(2)
+            dec = self._lead(rest, True, False) if rest.strip() else None
+            out.append(q + dec if dec else piece)
+        return "".join(out)
+
+    def __call__(self, h, lead=False, bag=False):
+        if not self.items or not h:
+            return h
+        parts = re.split(r"(<[^>]+>)", h)
+        first_text = True
+        after_strong = False
+        for i, part in enumerate(parts):
+            if part.startswith("<"):
+                if re.match(r"<strong\b", part):
+                    after_strong = True
+                continue
+            if not part.strip():
+                continue
+            new = None
+            if bag:
+                new = self._bag(part)
+            elif lead and first_text:
+                new = self._lead(part, True, False)
+            elif after_strong:
+                new = self._lead(part, False, True)
+            new = TM_RE.sub(self._tm, new if new is not None else part)
+            parts[i] = new
+            first_text = after_strong = False
+        return "".join(parts)
+
+
 def dex_str(d):
     return f"#{d:03d}" if isinstance(d, int) else ""
 
 
 class Renderer:
-    def __init__(self, sprites: SpriteBook, dex_icons=False):
+    def __init__(self, sprites: SpriteBook, dex_icons=False, items=None):
         self.sp = sprites
+        self.deco = ItemDecorator(items)
         self.stop_n = 0
         self.dex_icons = dex_icons
         self.toc = []          # [(chapter_idx, chapter, [(id, title, cap, tags)])]
@@ -131,7 +224,7 @@ class Renderer:
         return "\n".join(out)
 
     def b_p(self, b, in_box=False):
-        h = b["html"]
+        h = self.deco(b["html"])
         cls = [b.get("cls", "")]
         plain_lead = re.match(r"<strong>([^<]{2,40}?):?</strong>", h)
         if plain_lead:
@@ -146,7 +239,7 @@ class Renderer:
         return f'<p class="{c}">{h}</p>' if c else f"<p>{h}</p>"
 
     def b_label(self, b, in_box=False):
-        return f'<p class="sub-label">{b["html"]}</p>'
+        return f'<p class="sub-label">{self.deco(b["html"])}</p>'
 
     def b_h3(self, b, in_box=False):
         return f'<h3 class="sec-head"><span class="sec-mark"></span>{esc(b["text"])}</h3>'
@@ -159,27 +252,29 @@ class Renderer:
         n = 0
         for it in b["items"]:
             n = it.get("num") or n + 1
-            items.append(f'<li><span class="step-num">{n}</span><div class="step-body">{it["html"]}</div></li>')
+            items.append(f'<li><span class="step-num">{n}</span><div class="step-body">{self.deco(it["html"])}</div></li>')
         return f'<ol class="steps">{"".join(items)}</ol>'
 
     def b_ul(self, b, in_box=False):
-        return '<ul class="bullets">' + "".join(f"<li>{it['html']}</li>" for it in b["items"]) + "</ul>"
+        return '<ul class="bullets">' + "".join(f"<li>{self.deco(it['html'])}</li>" for it in b["items"]) + "</ul>"
 
     def b_checklist(self, b, in_box=False):
-        return '<ul class="checklist">' + "".join(f"<li>{it['html']}</li>" for it in b["items"]) + "</ul>"
+        return '<ul class="checklist">' + "".join(f"<li>{self.deco(it['html'])}</li>" for it in b["items"]) + "</ul>"
 
     def b_table(self, b, in_box=False):
         hdr = b["headers"]
         check_col = b.get("check") and hdr and not hdr[0].strip()
+        pc = pokemon_cols(hdr) if self.dex_icons else None
         is_dex = any(h.lower().startswith("pok") for h in hdr) and any(h.lower() == "method" for h in hdr)
+        item_cols = {i for i, h in enumerate(hdr) if ITEM_COLS.search(h or "")}
         ths = []
         for i, h in enumerate(hdr):
             if i == 0 and check_col:
                 ths.append('<th class="col-check"></th>')
             else:
                 ths.append(f"<th>{esc(h)}</th>")
-        if is_dex and self.dex_icons:
-            ths.insert(1 if check_col else 0, '<th class="col-icon"></th>')
+        if pc:
+            ths.insert(pc[0], '<th class="col-icon"></th>')
         rows = []
         for r in b["rows"]:
             tds = []
@@ -187,16 +282,19 @@ class Renderer:
                 if i == 0 and check_col:
                     tds.append(f'<td class="col-check"><span class="cbox"></span></td>')
                 else:
-                    tds.append(f"<td>{c}</td>")
-            if is_dex and self.dex_icons:
-                name_i = next(i for i, h in enumerate(hdr) if h.lower().startswith("pok"))
-                no_i = next((i for i, h in enumerate(hdr) if h.lower().startswith("no")), None)
-                nm = re.sub(r"<[^>]+>", "", r["cells"][name_i]).strip()
-                dx = re.sub(r"\D", "", re.sub(r"<[^>]+>", "", r["cells"][no_i])) if no_i is not None else ""
-                icon = self.sp.html({"name": nm, "label": nm, "dex": int(dx) if dx else None, "types": []}, "dex-icon")
-                tds.insert(1 if check_col else 0, f'<td class="col-icon">{icon}</td>')
+                    tds.append(f"<td>{self.deco(c, lead=i in item_cols)}</td>")
+            if pc:
+                ni, xi = pc
+                cells = r["cells"]
+                nm = cell_text(cells[ni]) if ni < len(cells) else ""
+                dx = re.sub(r"\D", "", cell_text(cells[xi]))[:4] if xi is not None and xi < len(cells) else ""
+                mon = {"name": nm, "label": nm, "dex": int(dx) if dx else None, "types": []}
+                p, _ = self.sp.path(mon) if nm else (None, None)
+                icon = self.sp.html(mon, "dex-icon") if (p or (nm and xi is not None)) else ""
+                tds.insert(ni, f'<td class="col-icon">{icon}</td>')
             rows.append("<tr>" + "".join(tds) + "</tr>")
-        cls = "data-table" + (" has-check" if check_col else "") + (" dex-table" if is_dex else "")
+        cls = ("data-table" + (" has-check" if check_col else "") + (" dex-table" if is_dex else "")
+               + (" has-icons" if pc else ""))
         return f'<table class="{cls}"><thead><tr>{"".join(ths)}</tr></thead><tbody>{"".join(rows)}</tbody></table>'
 
     def b_callout(self, b, in_box=False):
@@ -229,7 +327,7 @@ class Renderer:
             cells.append('<td class="encounter-card empty"></td>')
         rows = "".join(f'<tr class="encounter-row">{cells[i]}{cells[i + 1]}</tr>' for i in range(0, len(cells), 2))
         extra = self.blocks(b.get("extra", []), True)
-        lead = "".join(f'<p class="small"><strong>{esc(l)}</strong> {v}</p>' for l, v in b.get("lead_fields", []))
+        lead = "".join(f'<p class="small"><strong>{esc(l)}</strong> {self.deco(v)}</p>' for l, v in b.get("lead_fields", []))
         return (f'<div class="catch-box"><div class="catch-head"><span class="tag-pill">Catch here</span>'
                 f'<span class="catch-title">{esc(title)}</span>{count}</div>{lead}'
                 f'<table class="encounter-grid">{rows}</table>{extra}</div>')
@@ -238,6 +336,7 @@ class Renderer:
         method = ""
         notes = []
         for lab, val in m.get("fields", []):
+            val = self.deco(val, lead=bool(ITEM_COLS.search(lab or "")))
             if lab.lower() == "method":
                 method = f'<span class="meth"><span class="meth-k">Method</span> {val}</span>'
             elif lab:
@@ -270,6 +369,7 @@ class Renderer:
         meta = b.get("meta") or []
         meta_html = ""
         if meta:
+            meta = [(l, self.deco(v, bag=l.lower() == "bag items")) for l, v in meta]
             short = [(l, v) for l, v in meta if l.lower() != "bag items"]
             long_ = [(l, v) for l, v in meta if l.lower() == "bag items"]
             rows = []
@@ -281,8 +381,8 @@ class Renderer:
             for l, v in long_:
                 rows.append(f'<tr class="bag-row"><td colspan="4"><span class="boss-meta-label">{esc(l)}</span>{v or "&ndash;"}</td></tr>')
             meta_html = f'<table class="boss-meta-grid">{"".join(rows)}</table>'
-        lead = "".join(f'<div class="card-lead"><span class="fld-k">{esc(l)}</span> {v}</div>' if l else f'<div class="card-lead">{v}</div>'
-                       for l, v in b.get("lead_fields", []))
+        lead = "".join(f'<div class="card-lead"><span class="fld-k">{esc(l)}</span> {self.deco(v)}</div>' if l
+                       else f'<div class="card-lead">{self.deco(v)}</div>' for l, v in b.get("lead_fields", []))
         mons = "".join(self.mon_row(m, team) for m in b.get("mons", []))
         extra = self.blocks(b.get("extra", []), True)
         extra = f'<div class="card-extra">{extra}</div>' if extra else ""
@@ -292,6 +392,7 @@ class Renderer:
     def mon_row(self, m, team):
         short, long_ = [], []
         for lab, val in m.get("fields", []):
+            val = self.deco(val, lead=lab.lower() in ("item", "held item"))
             (short if lab in SHORT_FIELDS else long_).append((lab, val))
         short_html = "".join(f'<span class="fld"><span class="fld-k">{esc(l)}</span> {v}</span>' for l, v in short)
         moves = "".join(f'<span class="move-pill">{esc(mv)}</span>' for mv in m.get("moves", []))
@@ -385,6 +486,9 @@ def render_cover(cover, sprite_note):
     ded_html = (f'<div class="ded-first">{esc(ded[0])}</div><div>{esc(" ".join(ded[1:]))}</div>') if ded else ""
     footer = cover.get("footer", "")
     footer = re.sub(r"\s*Contains no official artwork\.?\s*Dashed boxes are sprite placeholders\.?", "", footer).strip()
+    # a footer recovered from an earlier build already carries that build's sprite note
+    footer = re.sub(r"\s*Sprite slots show type-coloured fallback badges in this build\.?", "", footer)
+    footer = re.sub(r"\s*Sprites: .*?for personal reference\.(\s*Item and TM icons: [^.]*\.)?", "", footer).strip()
     return f"""
 <section class="cover-page">
   <div class="cover-badge">{eyebrow}</div>
@@ -426,9 +530,10 @@ def thumb_tab_svg(idx, n, label, out_dir: Path, num=None):
     return p
 
 
-def build_html(model, sprites: SpriteBook, css_path: Path, asset_dir: Path, dex_icons=False, sprite_note=""):
+def build_html(model, sprites: SpriteBook, css_path: Path, asset_dir: Path, dex_icons=False, sprite_note="",
+               items=None):
     asset_dir.mkdir(parents=True, exist_ok=True)
-    r = Renderer(sprites, dex_icons=dex_icons)
+    r = Renderer(sprites, dex_icons=dex_icons, items=items)
     chapters = model["chapters"]
     n = len(chapters)
     body_ch = [r.chapter(i + 1, ch, sum(1 for c in chapters if (c.get("progress") or [0])[0])) for i, ch in enumerate(chapters)]

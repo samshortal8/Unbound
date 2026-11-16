@@ -512,3 +512,141 @@ def normalise_sprite(im):
         k = -(-192 // side)
         canvas = canvas.resize((side * k, side * k), Image.NEAREST)
     return canvas
+
+
+# --------------------------------------------------------------------------
+# Item and TM icons
+POKEAPI_ITEMS = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/"
+WIKI_ITEMS = "https://static.unboundwiki.com/wp-content/assets/sprites/items/"
+# item names that are also everyday words or common move/ability prefixes; only matched
+# where the guide clearly means an item (Item fields, bag lists, item columns)
+AMBIGUOUS_ITEMS = {"iron", "metronome", "mail", "lure", "protector", "honey", "pearl", "magnet"}
+
+
+def _item_norm(s: str) -> str:
+    s = ascii_fold(s.replace("’", "'").replace("é", "e")).lower()
+    return re.sub(r"[^a-z0-9']+", " ", s).strip()
+
+
+class ItemIcons:
+    """Recognise item names and TM codes in guide text and supply cached icons for them.
+
+    Icons come from the PokeAPI sprite set (one consistent 30px pixel-art style, incl.
+    type-coloured TM discs), then the Unbound wiki's item folder. Cached under
+    <sprite cache>/items/ with its own manifest; misses are remembered like sprites."""
+
+    def __init__(self, resolver: SpriteResolver, items_file: Path, tms_file: Path):
+        self.r = resolver
+        self.dir = resolver.cache / "items"
+        self.dir.mkdir(parents=True, exist_ok=True)
+        self.manifest_path = self.dir / "manifest.json"
+        self.manifest = json.loads(self.manifest_path.read_text("utf-8")) if self.manifest_path.exists() else {}
+        self.names = {}  # normalised English name -> PokeAPI identifier
+        for line in Path(items_file).read_text("utf-8").splitlines():
+            if line.startswith("#") or "\t" not in line:
+                continue
+            ident, name = line.split("\t", 1)
+            self.names.setdefault(_item_norm(name), ident)
+        self.max_words = max(len(n.split()) for n in self.names)
+        self.tms = json.loads(Path(tms_file).read_text("utf-8")) if Path(tms_file).exists() else {}
+        self.stats = {"cache": 0, "github": 0, "wiki": 0, "missing": 0}
+
+    def save(self):
+        self.manifest_path.write_text(json.dumps(self.manifest, indent=1, sort_keys=True), "utf-8")
+
+    # ------------------------------------------------------------ recognition
+    def _lookup(self, words, allow_ambiguous):
+        key = " ".join(words)
+        cands = [key]
+        if key.endswith("ies"):
+            cands.append(key[:-3] + "y")          # Berries -> Berry
+        if key.endswith("es"):
+            cands.append(key[:-2])                # Boxes -> Box
+        if key.endswith("s"):
+            cands.append(key[:-1])                # Potions -> Potion
+        for c in cands:
+            if c in self.names and (allow_ambiguous or c not in AMBIGUOUS_ITEMS):
+                return self.names[c]
+        return None
+
+    def leading(self, text: str, allow_ambiguous=False):
+        """Longest item name at the start of plain text -> (identifier, chars consumed) or None."""
+        m = re.match(r"\s*", text)
+        start = m.end()
+        tokens = list(re.finditer(r"[A-Za-z0-9é'’.\-]+", text[start:]))
+        best = None
+        for n in range(min(len(tokens), self.max_words), 0, -1):
+            span = tokens[:n]
+            # tokens must be contiguous words separated by single spaces
+            gaps = [text[start + span[i].end():start + span[i + 1].start()] for i in range(n - 1)]
+            if any(g != " " for g in gaps):
+                continue
+            words = [_item_norm(t.group()).replace(" ", "") for t in span]
+            ident = self._lookup([w for w in words if w], allow_ambiguous)
+            if ident:
+                best = (ident, start + span[-1].end())
+                break
+        return best
+
+    def tm_type(self, kind: str, num: int):
+        ent = self.tms.get(f"{kind.upper()}{num:02d}")
+        return ent["type"] if ent else None
+
+    # ------------------------------------------------------------ icons
+    def icon(self, ident: str) -> Optional[Path]:
+        ent = self.manifest.get(ident)
+        if ent and ent.get("file") and (self.dir / ent["file"]).exists():
+            self.stats["cache"] += 1
+            return (self.dir / ent["file"]).resolve()
+        if ent and ent.get("missing") and time.time() - ent.get("ts", 0) < self.r.retry_missing:
+            self.stats["missing"] += 1
+            return None
+        if self.r.offline:
+            self.stats["missing"] += 1
+            return None
+        for src, base in (("github", POKEAPI_ITEMS), ("wiki", WIKI_ITEMS)):
+            if src in self.r._disabled:
+                continue
+            url = base + ident + ".png"
+            try:
+                data = self.r._get(url, binary=True)
+            except Exception:
+                data = None
+            if data:
+                out = self.dir / f"{ident}.png"
+                if self._store(out, data, keep_canvas=(src == "github")):
+                    self.manifest[ident] = {"file": out.name, "source": src, "url": url, "ts": int(time.time())}
+                    self.stats[src] += 1
+                    return out.resolve()
+        if not any(s in self.r._disabled for s in ("github", "wiki")):
+            self.manifest[ident] = {"missing": True, "ts": int(time.time())}
+        self.stats["missing"] += 1
+        return None
+
+    def tm_icon(self, kind: str, num: int) -> Optional[Path]:
+        t = self.tm_type(kind, num)
+        return self.icon(f"{'hm' if kind.upper() == 'HM' else 'tm'}-{t.lower()}") if t else None
+
+    @staticmethod
+    def _store(out: Path, data: bytes, keep_canvas: bool) -> bool:
+        if Image is None:
+            out.write_bytes(data)
+            return True
+        try:
+            im = Image.open(io.BytesIO(data))
+            im.load()
+        except Exception:
+            return False
+        im = im.convert("RGBA")
+        if not keep_canvas:  # odd-sized wiki icons: trim, then pad onto a 30px-style grid
+            bbox = im.getbbox()
+            if bbox:
+                im = im.crop(bbox)
+            side = int(max(im.size) * 1.25)
+            canvas = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+            canvas.paste(im, ((side - im.width) // 2, (side - im.height) // 2))
+            im = canvas
+        k = max(1, -(-120 // max(im.size)))
+        im = im.resize((im.width * k, im.height * k), Image.NEAREST)
+        im.save(out, "PNG", optimize=True)
+        return True

@@ -3,3 +3,4 @@ sprite_cache/
 __pycache__/
 *.pyc
 *.pdf
+.claude/
