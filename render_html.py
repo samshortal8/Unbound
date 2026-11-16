@@ -135,7 +135,7 @@ def mon_name_from_cell(c):
 ITEM_COLS = re.compile(r"\b(item|items|held|reward|rewards|prize|gift)\b", re.I)
 TM_RE = re.compile(r"(?<![A-Za-z0-9#])(TM|HM)\s?0*(\d{1,3})(?!\d)")
 MON_REF_RE = re.compile(r"(?<![\w-])((?:(?:Alolan|Galarian|Mega) )?[A-Z][\w.'\u00e9\-]+(?: [A-Z][\w.'\u00e9\-]+)?)"
-                        r"((?:</strong>|</em>)?) \(#(\d{3})\)")
+                        r"((?:</strong>|</em>)?) \(#(\d{1,3})\)")
 
 
 class ItemDecorator:
