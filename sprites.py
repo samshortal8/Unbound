@@ -128,7 +128,7 @@ def parse_species(name: str, label: str = "", dex: Optional[int] = None) -> Spri
         if p in PAREN_FORMS:
             form = PAREN_FORMS[p]
     raw = re.sub(r"\([^)]*\)?", "", raw).strip()
-    raw = re.split(r"\s+or\s+", raw)[0].strip()          # 'Clefairy or Clefable' -> Clefairy
+    raw = re.split(r"\s+or\s+", raw, flags=re.I)[0].strip()          # 'Clefairy or Clefable' -> Clefairy
     low = raw.lower()
     if low in KEEP_HYPHEN:
         return SpriteKey(dex, raw, form)

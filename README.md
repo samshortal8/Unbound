@@ -61,10 +61,26 @@ Misses are cached for 14 days so the wiki isn't hammered; delete an entry from
 `sprite_cache/manifest.json` (or the whole folder) to retry. A network outage never gets
 cached as a miss.
 
+## Already have a Prima build with fallback badges?
+
+If you only have a finished Prima edition PDF (built while the sprite sources were
+unreachable) and not the original walkthrough PDF, `patch_sprites.py` puts the sprites in
+afterwards. It finds each fallback badge, reads the full name and dex number printed beside
+it, resolves the sprite the same way `build.py` does, and draws it in the stylesheet's sprite
+frame. The rest of the PDF is untouched, and the cover credit is updated.
+
+```
+python patch_sprites.py Unbound_NG_Expert_Prima_Edition.pdf -o Unbound_Prima_Edition.pdf
+python patch_sprites.py Unbound_NG_Expert_Prima_Edition.pdf --list   # names only, no fetching
+```
+
+It shares `sprite_cache/` and `overrides/` with `build.py`.
+
 ## Notes
 
-* The wiki refused connections from the sandbox this was built in, so the wiki scraper's
-  selectors were written blind and are adaptive on purpose. If it picks a wrong image, drop the
-  right PNG into `overrides/` under the slug from `--list-sprites`.
+* The wiki's TLS certificate covers `unboundwiki.com` but not `www.unboundwiki.com`, which is
+  why it looked unreachable at first. The builder now uses the bare domain and fetches sprites
+  straight from the wiki's sprite folder, falling back to scoring page images. If it ever
+  picks a wrong image, drop the right PNG into `overrides/` under the slug from `--list-sprites`.
 * Pokémon sprites are © Nintendo, Creatures Inc. and GAME FREAK inc. Fetch them for your own copy
   only; the cover footer credits whichever sources were used.
