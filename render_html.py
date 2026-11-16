@@ -238,8 +238,10 @@ def dex_str(d):
 
 
 class Renderer:
-    def __init__(self, sprites: SpriteBook, dex_icons=False, items=None, dex_names=None):
+    def __init__(self, sprites: SpriteBook, dex_icons=False, items=None, dex_names=None, phone=False, n_stops=0):
         self.sp = sprites
+        self.phone = phone
+        self.n_stops = n_stops
         self.deco = ItemDecorator(items, sprites, dex_names)
         self.stop_n = 0
         self.dex_icons = dex_icons
@@ -300,6 +302,8 @@ class Renderer:
         pc = pokemon_cols(hdr) if self.dex_icons else None
         is_dex = any(h.lower().startswith("pok") for h in hdr) and any(h.lower() == "method" for h in hdr)
         item_cols = {i for i, h in enumerate(hdr) if ITEM_COLS.search(h or "")}
+        if self.phone and self._too_wide(b, check_col):
+            return self.table_cards(b, pc, check_col, item_cols, is_dex)
         ths = []
         for i, h in enumerate(hdr):
             if i == 0 and check_col:
@@ -330,6 +334,57 @@ class Renderer:
                + (" has-icons" if pc else ""))
         return f'<table class="{cls}"><thead><tr>{"".join(ths)}</tr></thead><tbody>{"".join(rows)}</tbody></table>'
 
+    @staticmethod
+    def _too_wide(b, check_col):
+        """Phone: keep 2-column tables (and 3-column ones with short cells) as tables."""
+        n = len(b["headers"]) - (1 if check_col else 0)
+        if n <= 2:
+            return False
+        if n == 3:
+            longest = max((len(cell_text(c)) for r in b["rows"] for c in r["cells"]), default=0)
+            return longest > 22
+        return True
+
+    def table_cards(self, b, pc, check_col, item_cols, is_dex):
+        """Phone layout for wide tables: one card per row - title line (with sprite and number
+        for Pokémon tables) and the other columns as labelled lines underneath."""
+        hdr = b["headers"]
+        data_cols = [i for i in range(len(hdr)) if not (i == 0 and check_col)]
+        low = [cell_text(h).lower() for h in hdr]
+        no_i = pc[1] if pc else next((i for i in data_cols if low[i] in ("no.", "no", "#")), None)
+        title_i = pc[0] if pc else next((i for i in data_cols if i != no_i), data_cols[0])
+        rest = [i for i in data_cols if i not in (title_i, no_i)]
+        cards = []
+        for r in b["rows"]:
+            c = r["cells"] + [""] * (len(hdr) - len(r["cells"]))
+            tds = ""
+            if check_col:
+                tds += '<td class="rc-check"><span class="cbox"></span></td>'
+            if pc:
+                nm = mon_name_from_cell(c[title_i])
+                dx = re.sub(r"\D", "", cell_text(c[no_i]))[:4] if no_i is not None else ""
+                mon = {"name": nm, "label": nm, "dex": int(dx) if dx else None, "types": []}
+                p, _ = self.sp.path(mon) if nm else (None, None)
+                icon = self.sp.html(mon, "dex-icon") if (p or (nm and no_i is not None)) else ""
+                tds += f'<td class="rc-icon">{icon}</td>'
+            num = ""
+            if no_i is not None and cell_text(c[no_i]):
+                n = cell_text(c[no_i])
+                num = f'<span class="rc-num">{"#" + n.zfill(3) if n.isdigit() else esc(n)}</span>'
+            title = self.deco(c[title_i], lead=title_i in item_cols)
+            parts = re.split(r"<br\s*/?>", title, maxsplit=1)
+            head, desc = parts[0], (parts[1] if len(parts) > 1 else "")
+            if len(cell_text(head)) <= 4 and not pc:
+                head = f'<span class="rc-k">{esc(cell_text(hdr[title_i]))}</span> {head}'
+            title = head + (f'</div><div class="rc-desc">{desc}' if cell_text(desc) else "")
+            fields = "".join(
+                f'<div class="rc-f"><span class="rc-k">{esc(cell_text(hdr[i]))}</span> {self.deco(c[i], lead=i in item_cols)}</div>'
+                for i in rest if cell_text(c[i]).strip(" -\u2013\u2014"))
+            tds += f'<td class="rc-body"><div class="rc-title">{num}{title}</div>{fields}</td>'
+            cards.append(f'<div class="rcard"><table class="rc-t"><tr>{tds}</tr></table></div>')
+        cls = "rcards" + (" rc-dex" if pc else "")
+        return f'<div class="{cls}">{"".join(cards)}</div>'
+
     def b_callout(self, b, in_box=False):
         kind = b.get("kind") or "note"
         if kind == "?":
@@ -346,8 +401,13 @@ class Renderer:
         self.toc[-1][2].append((sid, title, cap, tags))
         cap_html = f'<span class="cap-pill"><span class="cap-k">LV CAP</span> {esc(cap)}</span>' if cap else ""
         tag_html = "".join(f'<span class="stop-tag tag-{"expert" if t == "Expert" else "data"}">{esc(t)}</span>' for t in tags)
+        nav = ""
+        if self.phone:
+            nav = (f'<div class="stop-nav"><span class="stop-count">STOP {self.stop_n}'
+                   f'{f" / {self.n_stops}" if self.n_stops else ""}</span>'
+                   f'<a class="to-contents" href="#contents">Contents</a></div>')
         return (f'<div class="stop-header" id="{sid}" data-stop="{esc(title)}">{cap_html}'
-                f'<h2>{esc(title)}</h2>{("<div class=stop-tags>" + tag_html + "</div>") if tags else ""}</div>')
+                f'<h2>{esc(title)}</h2>{("<div class=stop-tags>" + tag_html + "</div>") if tags else ""}{nav}</div>')
 
     # -------------------------------------------------------------- catch grid
     def b_catch(self, b, in_box=False):
@@ -356,11 +416,19 @@ class Renderer:
         n_now = sum(1 for m in mons if (m.get("avail") or {}).get("kind") == "now")
         count = f'<span class="catch-count">{len(mons)} species{f" · {n_now} now" if n_now else ""}</span>'
         cells = [self.enc_cell(m) for m in mons]
-        if len(cells) % 2:
-            cells.append('<td class="encounter-card empty"></td>')
-        rows = "".join(f'<tr class="encounter-row">{cells[i]}{cells[i + 1]}</tr>' for i in range(0, len(cells), 2))
+        if self.phone:
+            rows = "".join(f'<tr class="encounter-row">{c}</tr>' for c in cells)
+        else:
+            if len(cells) % 2:
+                cells.append('<td class="encounter-card empty"></td>')
+            rows = "".join(f'<tr class="encounter-row">{cells[i]}{cells[i + 1]}</tr>' for i in range(0, len(cells), 2))
         extra = self.blocks(b.get("extra", []), True)
         lead = "".join(f'<p class="small"><strong>{esc(l)}</strong> {self.deco(v)}</p>' for l, v in b.get("lead_fields", []))
+        if self.phone:
+            cards = "".join(f'<table class="encounter-grid enc-one"><tr class="encounter-row">{c}</tr></table>'
+                            for c in cells)
+            return (f'<div class="catch-box"><div class="catch-head"><span class="tag-pill">Catch here</span>'
+                    f'<span class="catch-title">{esc(title)}</span>{count}</div>{lead}{cards}{extra}</div>')
         return (f'<div class="catch-box"><div class="catch-head"><span class="tag-pill">Catch here</span>'
                 f'<span class="catch-title">{esc(title)}</span>{count}</div>{lead}'
                 f'<table class="encounter-grid">{rows}</table>{extra}</div>')
@@ -406,13 +474,14 @@ class Renderer:
             short = [(l, v) for l, v in meta if l.lower() != "bag items"]
             long_ = [(l, v) for l, v in meta if l.lower() == "bag items"]
             rows = []
-            for i in range(0, len(short), 4):
-                chunk = short[i:i + 4]
+            per = 2 if self.phone else 4
+            for i in range(0, len(short), per):
+                chunk = short[i:i + per]
                 tds = "".join(f'<td><span class="boss-meta-label">{esc(l)}</span>{v or "&ndash;"}</td>' for l, v in chunk)
-                tds += '<td></td>' * (4 - len(chunk))
+                tds += '<td></td>' * (per - len(chunk))
                 rows.append(f"<tr>{tds}</tr>")
             for l, v in long_:
-                rows.append(f'<tr class="bag-row"><td colspan="4"><span class="boss-meta-label">{esc(l)}</span>{v or "&ndash;"}</td></tr>')
+                rows.append(f'<tr class="bag-row"><td colspan="{per}"><span class="boss-meta-label">{esc(l)}</span>{v or "&ndash;"}</td></tr>')
             meta_html = f'<table class="boss-meta-grid">{"".join(rows)}</table>'
         lead = "".join(f'<div class="card-lead"><span class="fld-k">{esc(l)}</span> {self.deco(v)}</div>' if l
                        else f'<div class="card-lead">{self.deco(v)}</div>' for l, v in b.get("lead_fields", []))
@@ -449,7 +518,14 @@ class Renderer:
         self.bosses = []
         body = self.blocks(ch.get("blocks", []))
         kb = ""
-        if self.bosses:
+        if self.bosses and self.phone:
+            items = "".join(
+                f'<li><strong>{esc(t)}</strong><span class="kb-sub">{esc(" · ".join(x for x in (loc, fmt) if x))}'
+                f'{(" · cap " + esc(cap)) if cap else ""} · p. <a class="pg-ref" href="#{bid}"></a></span></li>'
+                for bid, t, loc, fmt, cap, n in self.bosses[:14])
+            kb = (f'<div class="key-battles"><div class="in-chapter-head">Key battles</div>'
+                  f'<ul class="kb-list">{items}</ul></div>')
+        elif self.bosses:
             rows = "".join(f'<tr><td><strong>{esc(t)}</strong></td><td>{esc(loc)}</td><td>{esc(fmt)}</td>'
                            f'<td class="kb-cap">{esc(cap)}</td><td class="kb-n">{n}</td><td class="kb-pg"><a class="pg-ref" href="#{bid}"></a></td></tr>'
                            for bid, t, loc, fmt, cap, n in self.bosses[:14])
@@ -473,7 +549,7 @@ class Renderer:
                    f'<text x="50" y="62" text-anchor="middle" font-family="Press Start 2P" font-size="30" fill="#16192B">{esc(num)}</text></svg>')
         splash = f"""
 <section class="chapter-splash" id="ch-{idx}">
-  <div class="chapter-banner" data-title="{esc(title)}">
+  <div class="chapter-banner" data-title="{esc(title)}" data-short="{esc(CHAPTER_SHORT.get(int(num) if str(num).isdigit() else idx, title.upper()[:16]))}">
     <table class="banner-t"><tr><td class="banner-hex">{hexagon}</td><td class="banner-txt">
       <div class="chapter-eyebrow">{esc(eyebrow)}</div>
       <h1 class="chapter-heading">{esc(title)}</h1>
@@ -542,7 +618,7 @@ def render_contents(toc):
                         f'{(" <span class=toc-cap>cap " + esc(c) + "</span>") if c else ""}</a></li>' for sid, t, c, _ in stops)
         parts.append(f'<div class="toc-ch"><a class="toc-ch-row" href="#ch-{idx}"><span class="toc-num">{esc(ch.get("num") or idx)}</span>'
                      f'<span class="toc-ch-title">{esc(ch.get("title"))}</span></a><ul class="toc-stops">{items}</ul></div>')
-    return f'<section class="toc-page"><h1 class="toc-title">Contents</h1>{"".join(parts)}</section>'
+    return f'<section class="toc-page" id="contents"><h1 class="toc-title">Contents</h1>{"".join(parts)}</section>'
 
 
 def thumb_tab_svg(idx, n, label, out_dir: Path, num=None):
@@ -586,16 +662,17 @@ def dex_names_from(model):
 
 
 def build_html(model, sprites: SpriteBook, css_path: Path, asset_dir: Path, dex_icons=False, sprite_note="",
-               items=None):
+               items=None, phone=False, extra_css=None):
     asset_dir.mkdir(parents=True, exist_ok=True)
-    r = Renderer(sprites, dex_icons=dex_icons, items=items, dex_names=dex_names_from(model))
+    n_stops = sum(1 for ch in model["chapters"] for b in ch.get("blocks", []) if b.get("type") == "stop")
+    r = Renderer(sprites, dex_icons=dex_icons, items=items, dex_names=dex_names_from(model), phone=phone, n_stops=n_stops)
     chapters = model["chapters"]
     n = len(chapters)
     body_ch = [r.chapter(i + 1, ch, sum(1 for c in chapters if (c.get("progress") or [0])[0])) for i, ch in enumerate(chapters)]
     page_css = []
     total = max(n, max((int(c["num"]) for c in chapters if str(c.get("num", "")).isdigit()), default=0)
                 + sum(1 for c in chapters if not str(c.get("num", "")).isdigit()))
-    for i, ch in enumerate(chapters, 1):
+    for i, ch in enumerate(chapters if not phone else [], 1):
         num = str(ch.get("num") or i)
         pos = int(num) if num.isdigit() else total
         label = CHAPTER_SHORT.get(pos, (ch.get("title") or "").upper()[:16])
@@ -606,6 +683,7 @@ def build_html(model, sprites: SpriteBook, css_path: Path, asset_dir: Path, dex_
 <html lang="en"><head><meta charset="utf-8">
 <title>{esc(model.get("meta", {}).get("title") or "Pokémon Unbound NG+ Expert")} (Prima edition)</title>
 <link rel="stylesheet" href="{css_path.resolve().as_uri()}">
+{f'<link rel="stylesheet" href="{Path(extra_css).resolve().as_uri()}">' if extra_css else ""}
 <style>
 {chr(10).join(page_css)}
 </style></head><body>

@@ -1,0 +1,220 @@
+/* =====================================================================
+   Phone edition: loaded after prima_unbound.css (build.py --phone).
+   A 9:16 page (90 x 160 mm) fills a phone screen at full width, so text
+   is readable with no zooming. One column throughout; wide tables become
+   stacked cards (render_html.table_cards).
+   ===================================================================== */
+
+@page {
+  size: 90mm 160mm;
+  margin: 9.5mm 4.5mm 9mm 4.5mm;
+  @top-left {
+    content: string(chapter-short);
+    font-size: 6.4pt;
+    letter-spacing: 0.3px;
+    color: #5B3E96;
+    border-bottom: 1.2pt solid #16192B;
+    padding-bottom: 2pt;
+    width: 24%;
+  }
+  @top-right {
+    content: string(stop-title);
+    font-size: 6.4pt;
+    border-bottom: 1.2pt solid #E8B027;
+    padding-bottom: 2pt;
+    width: 76%;
+    text-align: right;
+  }
+  @bottom-center {
+    font-size: 5.5pt;
+    padding: 2pt 6pt;
+    width: auto;
+    height: auto;
+    border-radius: 2.5pt;
+    border-bottom-width: 1.2pt;
+  }
+  @bottom-left { content: none; }
+}
+@page :first { margin: 0; }
+
+body {
+  font-size: 10pt;
+  line-height: 1.45;
+  overflow-wrap: break-word;
+}
+p { margin-bottom: 6.5pt; }
+p.muted { font-size: 9pt; }
+p.small, p.here-intro { font-size: 9.4pt; }
+
+/* ---------- Cover (full bleed) ---------- */
+.cover-page {
+  height: 160mm;
+  padding: 13mm 7mm 0 7mm;
+  border-width: 3pt;
+  border-radius: 0;
+}
+.cover-badge { font-size: 4.6pt; padding: 4pt 7pt; margin-bottom: 12pt; }
+.cover-title { font-size: 17pt; line-height: 1.4; margin-bottom: 9pt; }
+.cover-subtitle { font-size: 12.5pt; }
+.cover-strap { font-size: 4.4pt; margin-bottom: 14pt; }
+.cover-hp-bar { font-size: 5pt; padding: 5pt 8pt 6pt; margin-bottom: 16pt; }
+.cover-hp-fill { height: 6pt; }
+.cover-dedication { margin-top: 22pt; padding: 9pt 10pt; font-size: 5.6pt; line-height: 1.85; }
+.cover-footer { bottom: 7mm; left: 7mm; right: 7mm; font-size: 5.6pt; line-height: 1.4; padding-top: 6pt; }
+
+/* ---------- Contents: one column, roomy tap targets ---------- */
+.toc-title { font-size: 22pt; }
+a.toc-ch-row { font-size: 11pt; padding: 5pt 8pt; }
+a.toc-ch-row::after { font-size: 6pt; margin-top: 2pt; }
+ul.toc-stops, ol.in-chapter-list {
+  column-count: 1;
+  font-size: 9.2pt;
+  line-height: 1.95;
+  padding: 2pt 1pt 0 1pt;
+}
+a.toc-link::after { font-size: 5.5pt; }
+ul.toc-stops li, ol.in-chapter-list li { border-bottom: 0.5pt dotted #C8CEE0; }
+
+/* ---------- Chapter splash ---------- */
+.chapter-splash { padding-top: 0; }
+.chapter-banner {
+  padding: 10pt 10pt 9pt 10pt;
+  margin-bottom: 10pt;
+  string-set: chapter-title attr(data-title), chapter-short attr(data-short), stop-title "";
+}
+td.banner-hex { width: 50pt; padding-right: 8pt; }
+svg.ch-hex { width: 44pt; height: 44pt; }
+.chapter-eyebrow { font-size: 5.6pt; margin-bottom: 5pt; }
+.chapter-heading { font-size: 19pt; line-height: 1.02; }
+.hp-row { margin-top: 9pt; }
+.stat-row { border-spacing: 5pt 0; margin: 0 -5pt 10pt -5pt; }
+.stat-tile { padding: 6pt 6pt; border-top-width: 4pt; }
+.stat-val { font-size: 11pt; }
+.stat-lab { font-size: 7.6pt; }
+.in-chapter-head { font-size: 12pt; }
+.key-battles { margin-top: 10pt; }
+ul.kb-list { list-style: none; padding: 0; margin: 2pt 0 0 0; font-size: 9pt; line-height: 1.35; }
+ul.kb-list li { break-inside: avoid; padding: 3.5pt 0 3.5pt 8pt; border-left: 2.5pt solid #B8292F; margin-bottom: 3pt; background: #FDF0F0; }
+.kb-sub { display: block; font-size: 8pt; color: #3A405A; }
+ul.kb-list a.pg-ref::after { font-size: 5.5pt; }
+
+/* ---------- Stop header: progress + back to contents ---------- */
+.stop-header { padding: 6pt 9pt 5pt 9pt; margin: 12pt 0 7pt 0; border-left-width: 5pt; }
+.stop-header h2 { font-size: 14pt; }
+.cap-pill { font-size: 6pt; padding: 3pt 5pt 2.5pt 5pt; margin-left: 8pt; }
+.cap-k { font-size: 4.4pt; }
+.stop-nav { margin-top: 4pt; font-size: 0; }
+.stop-count {
+  display: inline-block;
+  font-family: "Press Start 2P", monospace;
+  font-size: 4.8pt;
+  color: #A7AEC9;
+  letter-spacing: 0.4px;
+  vertical-align: middle;
+}
+a.to-contents {
+  float: right;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  font-size: 7.2pt;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #16192B;
+  background: #E8B027;
+  padding: 1pt 6pt 0.6pt 6pt;
+  border-radius: 6pt;
+  margin-top: -1pt;
+}
+
+/* ---------- Headings, bars, lists ---------- */
+h3.sec-head { font-size: 12pt; margin-top: 11pt; }
+.area-bar { font-size: 11.5pt; padding: 3pt 8pt; }
+p.sub-label { font-size: 10pt; }
+ol.steps li { padding-left: 20pt; margin-bottom: 5.5pt; }
+.step-num { width: 14pt; height: 12.5pt; font-size: 5.6pt; line-height: 11.5pt; }
+ul.checklist li { font-size: 9.6pt; padding: 2.4pt 0 2.4pt 17pt; line-height: 1.4; }
+ul.checklist li::before { width: 9pt; height: 9pt; top: 3.6pt; }
+.prima-box-body { font-size: 9.4pt; padding: 6pt 8pt 4pt 8pt; }
+.prima-box-header { font-size: 9.6pt; padding: 3pt 8pt 2.5pt 8pt; }
+
+/* ---------- Catch grid: one card per row ---------- */
+.catch-head { font-size: 11.5pt; padding: 4pt 8pt 3.5pt 8pt; }
+.catch-count { float: none; display: block; font-size: 4.8pt; margin: 2pt 0 0 0; }
+.encounter-card { width: 100%; padding: 5pt 6pt; }
+.encounter-row .encounter-card { background: #FFFFFF; }
+.encounter-row:nth-child(even) .encounter-card { background: #F9FAFD; }
+.mon-title { font-size: 11.5pt; }
+.avail-row { font-size: 8.6pt; }
+.mon-meta { font-size: 8.6pt; }
+.meth-k { font-size: 8pt; }
+
+/* ---------- Boss and team cards ---------- */
+.boss-card-title { font-size: 12pt; padding: 5pt 8pt 4pt 8pt; }
+.boss-meta-grid { font-size: 8.4pt; }
+.boss-meta-grid td { padding: 4pt 6pt; }
+.mon-row { padding: 6pt 6pt 5pt 6pt; }
+td.mon-sprite-cell { width: 50pt; padding-right: 6pt; }
+.mon-name { font-size: 12pt; }
+.mon-fields { font-size: 8.8pt; line-height: 1.5; }
+.fld-k { font-size: 7.8pt; }
+.move-pill { font-size: 8.2pt; padding: 1pt 6pt 0.8pt 6pt; }
+.fld-note, .fld-role, .fld-free { font-size: 8.8pt; }
+.fld-src { font-size: 7.8pt; }
+.card-lead { font-size: 8.8pt; padding: 4pt 8pt; }
+.card-extra { padding: 6pt 8pt 2pt 8pt; }
+
+/* ---------- Tables that stay tables (2-3 narrow columns) ---------- */
+table.data-table { font-size: 9pt; }
+table.data-table th { font-size: 8.6pt; padding: 4pt 5pt 3pt 5pt; }
+table.data-table td { padding: 3.6pt 5pt; }
+
+/* ---------- Wide tables as stacked cards ---------- */
+.rcards { margin: 6pt 0 10pt 0; border-top: 1.5pt solid #16192B; }
+.rcard {
+  border-bottom: 0.75pt solid #C8CEE0;
+  padding: 4.5pt 2pt 4pt 2pt;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.rcard:nth-child(even) { background: #F5F7FC; }
+table.rc-t { width: 100%; border-collapse: collapse; }
+td.rc-check { width: 14pt; vertical-align: top; padding-top: 2.5pt; }
+td.rc-icon { width: 35pt; vertical-align: top; }
+td.rc-body { vertical-align: top; }
+.rc-title { font-weight: 700; color: #16192B; font-size: 9.8pt; line-height: 1.3; margin-bottom: 1pt; }
+.rc-num {
+  font-family: "Press Start 2P", monospace;
+  font-weight: 400;
+  font-size: 5.6pt;
+  color: #5B3E96;
+  margin-right: 5pt;
+  vertical-align: 1pt;
+}
+.rc-f { font-size: 8.8pt; line-height: 1.35; color: #2D324A; margin-top: 0.6pt; }
+.rc-k {
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  font-size: 7.6pt;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #5B3E96;
+}
+.rcards .cbox { width: 9pt; height: 9pt; }
+.rc-dex .dex-icon { width: 30pt; height: 30pt; }
+.rc-dex .dex-icon img { width: 28.5pt; height: 28.5pt; }
+
+/* catch boxes on phone: one table per card so the head stays with the first card */
+.catch-head { break-after: avoid; page-break-after: avoid; break-inside: avoid; page-break-inside: avoid; }
+table.enc-one { break-inside: avoid; page-break-inside: avoid; border-top: none; }
+table.enc-one + table.enc-one .encounter-card { border-top: none; }
+table.enc-one:nth-of-type(even) .encounter-card { background: #F9FAFD; }
+.rc-desc { font-size: 8.8pt; line-height: 1.35; color: #2D324A; margin: 0.5pt 0 1pt 0; }
+.rc-title .rc-k { font-size: 7.6pt; margin-right: 2pt; }
+
+/* headers never split, and travel to the next page with what follows them */
+.stop-header, .boss-card-title, .area-bar, h3.sec-head, p.sub-label, .prima-box-header, .chapter-banner {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  break-after: avoid;
+  page-break-after: avoid;
+}

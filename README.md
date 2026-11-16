@@ -28,6 +28,19 @@ What the build adds on top of the layout:
 
 `--no-items` and `--no-dex-icons` turn the icon features off.
 
+### Phone edition
+
+```
+python build.py --model data/model.json --phone -o Unbound_Prima_Edition_Phone.pdf
+```
+
+Same content and icons on a 9:16 page (90 x 160 mm) that fills a phone screen at full
+width, so nothing needs zooming. Everything is one column: encounter cards stack, boss
+info goes two across, and wide tables (Pokédex, missions, legendaries ...) become stacked
+cards with the sprite and name on top. Each stop bar shows "Stop N / 79" and a Contents
+button that jumps back to the contents, and the running head shows the chapter and stop.
+Styles live in `prima_phone.css`, layered over `prima_unbound.css`.
+
 First run fetches ~590 sprites (polite 0.6 s gap per host, roughly 10-20 minutes). Every run
 after that is offline and takes about a minute.
 

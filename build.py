@@ -85,6 +85,8 @@ def main(argv=None):
     ap.add_argument("--dex-icons", action="store_true", help="(default) sprite column in Pokémon tables")
     ap.add_argument("--no-dex-icons", action="store_true", help="no sprite column in Pokémon tables")
     ap.add_argument("--no-items", action="store_true", help="no item / TM icons")
+    ap.add_argument("--phone", action="store_true",
+                    help="phone edition: 9:16 pages, one column, wide tables as cards (prima_phone.css)")
     ap.add_argument("--html-only", action="store_true")
     ap.add_argument("--list-sprites", action="store_true")
     ap.add_argument("--reparse", action="store_true", help="ignore the cached parse")
@@ -160,11 +162,12 @@ def main(argv=None):
     if items:
         note += " Item and TM icons: PokeAPI sprites."
     css = HERE / "prima_unbound.css"
-    html = build_html(model, book, css, a.build_dir / "assets", dex_icons=a.dex_icons, sprite_note=note, items=items)
+    html = build_html(model, book, css, a.build_dir / "assets", dex_icons=a.dex_icons, sprite_note=note, items=items,
+                      phone=a.phone, extra_css=HERE / "prima_phone.css" if a.phone else None)
     if items:
         items.save()
         print(f"      item/TM icons: {items.stats}")
-    html_path = a.build_dir / "guide.html"
+    html_path = a.build_dir / ("guide_phone.html" if a.phone else "guide.html")
     html_path.write_text(html, "utf-8")
     print(f"[3/4] html: {html_path} ({len(html) // 1024} KB)")
     if a.html_only:
@@ -174,7 +177,8 @@ def main(argv=None):
     print("[4/4] pdf: WeasyPrint layout (a few minutes for the full guide) ...")
     from weasyprint import HTML
     doc = HTML(string=html, base_url=str(HERE)).render()
-    doc.metadata.title = "Pokémon Unbound NG+ Expert: Story Walkthrough (Prima-style edition)"
+    doc.metadata.title = ("Pokémon Unbound NG+ Expert: Story Walkthrough (Prima-style edition"
+                          + (", phone)" if a.phone else ")"))
     doc.write_pdf(a.out)
     print(f"      wrote {a.out}  ({len(doc.pages)} pages, {a.out.stat().st_size / 1e6:.1f} MB) "
           f"in {time.time() - t0:.0f}s")
